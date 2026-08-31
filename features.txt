@@ -1,0 +1,173 @@
+# Blog Backend — Feature Spec (Django + DRF + SQLite)
+
+A blueprint for the backend. Build it in this order — each section works once the previous one does.
+
+## 1. Stack
+
+- **Django** — web framework, ORM, admin panel
+- **Django REST Framework (DRF)** — turns models into a JSON API
+- **SQLite** — file-based DB, zero setup, upgrade to Postgres later without code changes
+- **SimpleJWT** — login tokens
+- **django-cors-headers** — lets a separate frontend (React/Vue/etc.) call the API
+- **django-filter** — query-string filtering (`?status=published&category=tech`)
+
+## 2. Apps
+
+Split into two Django apps so auth and content don't tangle:
+
+- `accounts` — custom User model, registration, login, profile
+- `blog` — Category, Tag, Post, Comment, Like
+
+## 3. Data models
+
+### User (extends Django's built-in User)
+| Field | Type | Notes |
+|---|---|---|
+| username, email, password | built-in | Django handles hashing |
+| first_name, last_name | built-in | |
+| bio | text | optional author bio |
+| avatar | image | optional |
+| website | url | optional |
+
+### Category
+| Field | Type | Notes |
+|---|---|---|
+| name | string, unique | e.g. "Technology" |
+| slug | slug, unique | auto-generated from name |
+| description | text | optional |
+
+### Tag
+| Field | Type | Notes |
+|---|---|---|
+| name | string, unique | |
+| slug | slug, unique | auto-generated |
+
+### Post
+| Field | Type | Notes |
+|---|---|---|
+| title | string | |
+| slug | slug, unique | auto-generated, deduped if collision |
+| author | FK → User | |
+| category | FK → Category, nullable | one category per post |
+| tags | M2M → Tag | multiple tags per post |
+| excerpt | string(500) | short summary for list views |
+| content | text | full body (markdown or HTML) |
+| cover_image | image, optional | |
+| status | choice: draft / published / archived | |
+| published_at | datetime, nullable | set when status → published |
+| view_count | integer | incremented on each retrieve |
+| created_at / updated_at | datetime | auto |
+
+### Comment
+| Field | Type | Notes |
+|---|---|---|
+| post | FK → Post | |
+| author | FK → User | |
+| parent | FK → self, nullable | enables threaded replies |
+| body | text | |
+| is_approved | boolean, default true | flip to false for moderation queue |
+| created_at / updated_at | datetime | auto |
+
+### Like
+| Field | Type | Notes |
+|---|---|---|
+| post | FK → Post | |
+| user | FK → User | |
+| unique_together | (post, user) | one like per user per post |
+
+## 4. API endpoints
+
+**Auth** (`/api/auth/`)
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/register/` | create account |
+| POST | `/login/` | get access + refresh JWT |
+| POST | `/login/refresh/` | refresh an expired access token |
+| GET/PATCH | `/me/` | view or edit your own profile |
+
+**Content** (`/api/`)
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/posts/` | list posts (paginated, filterable, searchable) |
+| POST | `/posts/` | create post (auth required) |
+| GET | `/posts/{slug}/` | single post, increments view_count |
+| PUT/PATCH | `/posts/{slug}/` | edit (author or staff only) |
+| DELETE | `/posts/{slug}/` | delete (author or staff only) |
+| POST | `/posts/{slug}/like/` | toggle like |
+| GET | `/posts/{slug}/comments/` | list approved comments on a post |
+| POST | `/posts/{slug}/comments/` | add a comment (auth required) |
+| GET/POST | `/categories/` | list/create categories |
+| GET/POST | `/tags/` | list/create tags |
+| GET/PUT/DELETE | `/comments/{id}/` | edit/delete your own comment |
+
+**Query params on `/posts/`:**
+- `?status=published`
+- `?category__slug=tech`
+- `?tags__slug=django`
+- `?author__username=jane`
+- `?search=keyword` (searches title, excerpt, content)
+- `?ordering=-published_at` or `?ordering=view_count`
+- `?page=2`
+
+## 5. Auth & permissions
+
+- **JWT**: login returns an `access` token (short-lived, ~1hr) and `refresh` token (~7 days). Send `Authorization: Bearer <access>` on protected requests.
+- **Read access**: anyone can list/view published posts, categories, tags, and approved comments — no login needed.
+- **Write access**: creating posts/comments requires login. Editing/deleting a post or comment requires being the author (or staff).
+- **Draft visibility**: a logged-in author sees their own drafts in `/posts/`; everyone else only sees published posts. Staff sees everything.
+
+## 6. Cross-cutting features to build in
+
+- **Slugs**: auto-generate from title/name on save, dedupe on collision (`hello-world`, `hello-world-2`, ...)
+- **Pagination**: default 10 per page on all list endpoints
+- **Filtering + search + ordering**: via django-filter and DRF's built-in backends
+- **View counting**: increment on `GET /posts/{slug}/`, not on list
+- **Nested serializers**: post responses embed author + category + tags as objects, not just IDs (write side uses separate `category_id` / `tag_ids` fields)
+- **List vs detail serializers**: list view is lightweight (no full `content` body); detail view has everything — keeps payloads small on the homepage/feed
+
+## 7. Good next additions (once the core works)
+
+- Email verification on signup
+- Password reset flow
+- Rate limiting on comments/likes (DRF throttling classes)
+- Full-text search (Postgres `SearchVector`) once you outgrow SQLite
+- Post scheduling (a cron/celery task that flips `draft` → `published` at `published_at`)
+- Image resizing/thumbnails on upload (Pillow + `django-imagekit`)
+- Soft-delete instead of hard delete for posts/comments
+- Activity feed / notifications (new comment on your post, new reply to your comment)
+- API docs via `drf-spectacular` (auto-generates OpenAPI/Swagger UI)
+
+## 8. Suggested project structure
+
+```
+blog_backend/
+├── manage.py
+├── requirements.txt
+├── config/              # project settings
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── accounts/
+│   ├── models.py        # User
+│   ├── serializers.py
+│   ├── views.py          # register, login wiring, /me/
+│   ├── urls.py
+│   └── admin.py
+└── blog/
+    ├── models.py         # Category, Tag, Post, Comment, Like
+    ├── serializers.py
+    ├── permissions.py    # IsAuthorOrReadOnly
+    ├── views.py           # ViewSets
+    ├── urls.py            # DRF router
+    └── admin.py
+```
+
+## 9. Build order (recommended)
+
+1. `accounts` app — custom User model, register/login endpoints. Confirm you can register and get a JWT back.
+2. `Category` and `Tag` models — simplest CRUD, good warm-up.
+3. `Post` model + list/detail endpoints, author-only write permission.
+4. `Comment` model nested under posts.
+5. `Like` model as a toggle action.
+6. Filtering, search, pagination on `/posts/`.
+7. Polish: admin panel registration, seed data, API docs.
