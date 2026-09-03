@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+from django.db.models import Q
 
 
 # Create your views here.
@@ -25,12 +26,22 @@ list_create_view = PostListCreateAPIView.as_view()
 
 @api_view(["GET", "POST"])
 def create_post(request):
-    queryset = Post.objects.create(
-        title= 'title',
-        content = 'content'
+    serializer = PostSerializer(data= request.data)
+
+    if serializer.is_valid():
+        serializer.save(user= request.user)
+
+    
+
+    return Response(serializer.data, status=400)
+
+
+def search_post(request):
+    query = request.Get.get('q')
+    post = Post.objects.filter(
+        Q(title__icontain= query)
     )
 
-    serializer = PostSerializer(queryset)
-    data = serializer.save(user=request.user)
+    return Response(post)
 
-    return Response(data)
+
