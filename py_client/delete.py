@@ -1,8 +1,15 @@
 import requests
+from getpass import getpass
 
-BASE_URL = "http://127.0.0.1:8000/"
-endpoint = "http://127.0.0.1:8000/blogAPI/create/"
-login_endpoint = "http://127.0.0.1:8000/api/token/"
+
+
+import requests
+
+BASE_URL = "http://127.0.0.1:8000"
+#endpoint = "http://127.0.0.1:8000/blogAPI/create/"
+login_endpoint = f"{BASE_URL}/api/token/"
+delete_endpoint = f"{BASE_URL}/blogAPI/delete/2/"
+#list_endpoint = f"{BASE_URL}/blogAPI/list/"
 
 
 
@@ -12,6 +19,9 @@ data = {  "username" : "fodilat",
     "email" : "fodilat@gmail.com"}
 
 get_response = requests.post(login_endpoint, json=data)
+
+#print(get_response.json())
+
 
 print(get_response.status_code)
 # print(get_response.text)
@@ -28,17 +38,16 @@ if get_response.status_code == 200:
     headers = {
         'Authorization' : f"Bearer {access_token}"
     }
-    data1 = {
-        'title' : 'python',
-        'content' : 'python is used for AI'
-    }
+    
 
 
 
-    get_response = requests.post(endpoint, json=data1, headers=headers)
+    get_response = requests.delete(delete_endpoint,headers=headers)
+    if get_response.status_code == 204:
+       print("Post deleted successfully.")
+    else:
+       print(get_response.text)
 
-    print(get_response.status_code)
-    print(get_response.json())
 
 if get_response.status_code == 401:
         refresh_token = tokens['refresh']
@@ -61,17 +70,15 @@ if get_response.status_code == 401:
                 'Authorization': f'Bearer {access_token}'
             }
             
-            data = {
-                'title' : 'Django for beginner',
-                'content' : 'django is python language framework'
-            }
         
-            get_response = requests.post(endpoint, json=data, headers=headers)
+            get_response = requests.delete(delete_endpoint, headers=headers)
             
 
             
 
             print(get_response.status_code)
-            print(get_response.json())
+            print(get_response.text)
+
+
 
 

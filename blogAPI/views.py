@@ -72,22 +72,75 @@ def update(request, pk):
         return Response(serializer.data)
 
     return Response(serializer.errors, status=400)
+# Not tested yet
 
 
 
 # Comment View
 
+# create comment
 
-class CommentListCreateAPIView(generics.ListCreateAPIView):
-    queryset = Comment.objects.all()
-    serializer_class = CommentSerializer
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_comment(request, pk):
+    serializer = CommentSerializer(data=request.data)
+    post = get_object_or_404(Post, pk=pk)
+    if serializer.is_valid():
+        serializer.save(post=post,user=request.user)
+    
+        return Response({"Message" : "Commented succesfully"}, status=201)
+    return Response(serializer.errors)
 
 
-    def perform_create(self, serializer):
-        post = Post.objects.get(pk=self.kwargs['pk'])
-        serializer.save(post=post, user=self.request.user)
+# list of comment 
 
-comment_create_view = CommentListCreateAPIView.as_view()
+@api_view(['GET'])
+def post_comment_list(request, pk):
+    post = Post.objects.get(pk=pk)
+    comment_list = post.comment.all()
+    serializer = CommentSerializer(comment_list, many=True)
+    return Response(serializer.data)
+
+#get a comment
+@api_view(['GET'])
+def comment_detail(request, pk, comment_pk):
+    post = get_object_or_404(Post, pk=pk)
+    comment = get_object_or_404(
+        Comment,
+        pk=comment_pk,
+        post=post
+    )
+    comment_instance = CommentSerializer(comment)
+    return Response(comment_instance.data)
+
+@api_view(['PATCH', 'PUT'])
+def update_comment(request, pk, comment_pk):
+    post = get_object_or_404(Post, pk=pk)
+    comment = get_object_or_404(
+    Comment,
+    pk=comment_pk,
+    post=post
+)
+
+    serializer = CommentSerializer(comment,data = request.data, partial= request.method == 'PATCH')
+    if serializer.is_valid():
+        serializer.save(post=post, user=request.user)
+        return Response({'message' : 'message updated!'})
+    return Response(serializer.errors)
+
+@api_view(['DELETE'])
+def delete_comment(request, pk, comment_pk):
+    post = get_object_or_404(Post, pk=pk)
+    comment = get_object_or_404(Comment, pk=comment_pk, post=post)
+
+    comment.delete()
+
+    return Response({'message' : 'Deletd!'})
+
+
+
+
+
 
 
 

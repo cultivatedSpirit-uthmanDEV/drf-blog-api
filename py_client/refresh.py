@@ -5,12 +5,11 @@ BASE_URL = 'http://127.0.0.1:8000'
 # 1. Login
 login_url = f'{BASE_URL}/api/token/'
 
-data = {
-    'username': 'fodilat',
-    'password': 'dogxx'
-}
+data1 = {  "username" : "fodilat",
+    "password" : "dogxx",
+    "email" : "fodilat@gmail.com"}
 
-response = requests.post(login_url, json=data)
+response = requests.post(login_url, json=data1)
 
 tokens = response.json()
 

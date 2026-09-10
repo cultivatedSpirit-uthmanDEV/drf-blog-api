@@ -40,6 +40,7 @@ class PostSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    post= serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Comment
@@ -49,7 +50,7 @@ class CommentSerializer(serializers.ModelSerializer):
             'post',
             'content',
             'created_at',
-            'updated_at',
+            #'updated_at',
         ]
 
 

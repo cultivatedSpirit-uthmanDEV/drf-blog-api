@@ -29,7 +29,7 @@ if get_response.status_code == 200:
         'Authorization' : f"Bearer {access_token}"
     }
     data1 = {
-        'content' : 'I love this post, here is my comment for the second time'
+        'content' : 'This is a new comment'
     }
 
 
@@ -45,7 +45,7 @@ if get_response.status_code == 401:
         refresh_response = requests.post(
             f'{BASE_URL}/api/token/refresh/',
             json={
-                 "post" : 5,
+                
                 'refresh': refresh_token
             }
         )
@@ -62,8 +62,8 @@ if get_response.status_code == 401:
             }
             
             data = {
-                'title' : 'Django for beginner',
-                'content' : 'django is python language framework'
+                
+                'content' : 'This is a new comment'
             }
         
             get_response = requests.post(endpoint, json=data, headers=headers)
