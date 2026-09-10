@@ -1,9 +1,11 @@
 from django.shortcuts import render
 from rest_framework import generics
-from blogAPI.models import Post, Comment
+from blogAPI.models import Post, Comment, Like
 from blogAPI.serializer import PostSerializer, CommentSerializer
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
+
+from permission import IsOwner
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from django.db.models import Q
@@ -63,11 +65,14 @@ def get_post(request, pk):
       return Response(data)
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsOwner])
 def update(request, pk):
     instance = get_object_or_404(Post, pk=pk)
-    serializer = PostSerializer(instance, data= request.data, partial= request.method == 'PATCH' )
-    if serializer.is_valid():
+
+    if not IsOwner().has_object_permission(request, None, instance):
+    #if request.user == instance.user:
+       serializer = PostSerializer(instance, data= request.data, user = request.user, partial= request.method == 'PATCH' )
+       if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
 
@@ -122,7 +127,7 @@ def update_comment(request, pk, comment_pk):
     post=post
 )
 
-    serializer = CommentSerializer(comment,data = request.data, partial= request.method == 'PATCH')
+    serializer = CommentSerializer( comment, user= request.user,data = request.data, partial= request.method == 'PATCH')
     if serializer.is_valid():
         serializer.save(post=post, user=request.user)
         return Response({'message' : 'message updated!'})
@@ -140,9 +145,38 @@ def delete_comment(request, pk, comment_pk):
 
 
 
+# Like views
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_like(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    like = Like.objects.create(
+        user=request.user,
+        post=post
+    )
+     
+    return Response(
+        {"message": "Post liked successfully"},
+        status=201
+    )
 
+# unlike a post
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def unlike_post(request, pk, like_pk):
+    post = get_object_or_404(Post, pk=pk)
+    like = get_object_or_404(
+           Like,
+           pk=like_pk,
+           post=post,
+           user=request.user
+    )
 
+    like.delete()
 
+    return Response({'message' : 'unliked successfully'})
+
+    
 
 
 

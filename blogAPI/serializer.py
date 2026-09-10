@@ -8,8 +8,23 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['username']
 
 
+class LikeSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    post= serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Like
+        fields = [
+            'user'
+            'post'
+
+        ]
+
+
+
 class PostSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only = True)
+    like = LikeSerializer(read_only = True)
     class Meta:
         model = Post
         fields = [
@@ -17,6 +32,7 @@ class PostSerializer(serializers.ModelSerializer):
                 'category',
                 'title' , 
                 'content' ,
+                'like_count'
                 'created_at', 
                 'updated_at', 
                 'published'
@@ -36,6 +52,9 @@ class PostSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
             "title already exist")
 
+    def get_like_count(self, obj):
+        return obj.like.count()
+
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -52,6 +71,10 @@ class CommentSerializer(serializers.ModelSerializer):
             'created_at',
             #'updated_at',
         ]
+
+
+
+
 
 
 
