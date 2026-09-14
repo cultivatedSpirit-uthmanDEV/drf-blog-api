@@ -42,6 +42,7 @@ class Reply(models.Model):
 class Like(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="likes")
+    # add comment relation later
 
 class CommentLike(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
