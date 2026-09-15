@@ -11,13 +11,18 @@ class Post(models.Model):
     category = models.ManyToManyField(Category)
     title = models.CharField(max_length=120)
     content = models.CharField(max_length=500)
-    followers = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at  =  models.DateTimeField(auto_now=True)
     published =  models.BooleanField(default=True)
 
     def __str__(self):
         return self.title
+class Followers(models.Model):
+     follower = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name="following")
+
+     following = models.ForeignKey(User, on_delete=models.CASCADE,null=True, related_name="followers")
+
+     created_at = models.DateTimeField(auto_now_add=True)
 
 
 

@@ -1,11 +1,10 @@
 from django.shortcuts import render
 from rest_framework import generics
-from blogAPI.models import Post, Comment, Like
+from blogAPI.models import Post, Comment, Like,Followers, User
 from blogAPI.serializer import PostSerializer, CommentSerializer
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
-
-from permission import IsOwner
+from blogAPI.permission import IsOwner
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from django.db.models import Q
@@ -162,7 +161,7 @@ def create_like(request, pk):
 
 # unlike a post
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsOwner])
 def unlike_post(request, pk, like_pk):
     post = get_object_or_404(Post, pk=pk)
     like = get_object_or_404(
@@ -175,6 +174,41 @@ def unlike_post(request, pk, like_pk):
     like.delete()
 
     return Response({'message' : 'unliked successfully'})
+
+#create follower
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsOwner])
+def create_follower(request, pk):
+    following = get_object_or_404(User, pk=pk)
+    follower = Followers.objects.create(
+        follower=request.user,
+        following= following
+    )
+     
+    return Response(
+        {"message": "followed"},
+        status=201
+    )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def follow_post(request, pk, like_pk):
+    post = get_object_or_404(Post, pk=pk)
+    like = get_object_or_404(
+           Like,
+           pk=like_pk,
+           post=post,
+           user=request.user
+    )
+
+    like.delete()
+
+    return Response({'message' : 'unliked successfully'})
+
+## both follow and unfollow 
+# add url
+# test with py_client
 
     
 

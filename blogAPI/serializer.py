@@ -1,11 +1,14 @@
 from rest_framework import serializers
-from .models import Post, Comment, Like
+from .models import Post, Comment, Like, Followers
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
+    followers = serializers.SerializerMethodField()
     class Meta:
         model = User
         fields = ['username']
+
+        
 
 
 class LikeSerializer(serializers.ModelSerializer):
@@ -15,16 +18,33 @@ class LikeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Like
         fields = [
+            'id',
             'user'
             'post'
 
         ]
 
+     
+
+class FollowersSerializer(serializers.ModelSerializer):
+    follower = UserSerializer(read_only=True)
+    following = UserSerializer(read_only=True)
+    followers_count = serializers.SerializerMethodField()
+    class Meta:
+        model = Followers
+        fields = [
+            'id', 'follower', 'following', 'created_at','followers_count'
+        ]
+        read_only_fields = ['id', 'follower', 'created_at']
+    def get_followers_count(self, obj):
+                return obj.following.followers.count()
+
 
 
 class PostSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only = True)
-    like = LikeSerializer(read_only = True)
+    like_count = serializers.SerializerMethodField(read_only = True)
+
     class Meta:
         model = Post
         fields = [
